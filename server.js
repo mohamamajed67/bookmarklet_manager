@@ -6,6 +6,8 @@ require('dotenv').config();
 
 const app = express();
 const port = process.env.PORT || 3000;
+const cors = require('cors');
+app.use(cors());
 
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, 'public')));
