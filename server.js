@@ -1,88 +1,83 @@
 const express = require('express');
+const { MongoClient, ObjectId } = require('mongodb');
 const bodyParser = require('body-parser');
 const path = require('path');
-const sqlite3 = require('sqlite3').verbose();
+require('dotenv').config();
+
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000;
 
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Kết nối đến database
-const db = new sqlite3.Database('./bookmarklets.db', (err) => {
-  if (err) {
-    console.error('Error connecting to database:', err.message);
-  } else {
-    console.log('Connected to the SQLite database.');
+const uri = process.env.MONGODB_URI;
+const client = new MongoClient(uri);
+
+let db;
+
+async function connectToDatabase() {
+  try {
+    await client.connect();
+    console.log("Connected to MongoDB Atlas");
+    db = client.db('bookmarklets'); // Thay 'bookmarklets_db' bằng tên database của bạn
+  } catch (error) {
+    console.error("Error connecting to MongoDB Atlas:", error);
+  }
+}
+
+connectToDatabase();
+
+// API endpoints
+app.get('/api/bookmarklets', async (req, res) => {
+  try {
+    const bookmarklets = await db.collection('bookmarklets').find().toArray();
+    res.json(bookmarklets);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 
-// Khởi tạo bảng nếu chưa tồn tại
-db.run(`CREATE TABLE IF NOT EXISTS bookmarklets (
-  id TEXT PRIMARY KEY,
-  name TEXT NOT NULL,
-  description TEXT,
-  code TEXT NOT NULL
-)`);
-
-// API endpoints
-app.get('/api/bookmarklets', (req, res) => {
-  db.all("SELECT * FROM bookmarklets", [], (err, rows) => {
-    if (err) {
-      res.status(500).json({ error: err.message });
-      return;
-    }
-    res.json(rows);
-  });
-});
-
-app.post('/api/bookmarklets', (req, res) => {
+app.post('/api/bookmarklets', async (req, res) => {
   const { name, description, code } = req.body;
-  const id = Date.now().toString();
-  db.run(`INSERT INTO bookmarklets (id, name, description, code) VALUES (?, ?, ?, ?)`,
-    [id, name, description, code],
-    function(err) {
-      if (err) {
-        res.status(500).json({ error: err.message });
-        return;
-      }
-      res.status(201).json({ id, name, description, code });
-    }
-  );
+  const newBookmarklet = { name, description, code, createdAt: new Date() };
+  try {
+    const result = await db.collection('bookmarklets').insertOne(newBookmarklet);
+    res.status(201).json({ id: result.insertedId, ...newBookmarklet });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
-app.put('/api/bookmarklets/:id', (req, res) => {
+app.put('/api/bookmarklets/:id', async (req, res) => {
   const { name, description, code } = req.body;
   const { id } = req.params;
-  db.run(`UPDATE bookmarklets SET name = ?, description = ?, code = ? WHERE id = ?`,
-      [name, description, code, id],
-      function(err) {
-          if (err) {
-              res.status(500).json({ error: err.message });
-              return;
-          }
-          if (this.changes === 0) {
-              res.status(404).json({ error: 'Bookmarklet not found' });
-          } else {
-              res.json({ id, name, description, code });
-          }
-      }
-  );
+  try {
+    const result = await db.collection('bookmarklets').updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { name, description, code, updatedAt: new Date() } }
+    );
+    if (result.matchedCount === 0) {
+      res.status(404).json({ error: 'Bookmarklet not found' });
+    } else {
+      res.json({ id, name, description, code });
+    }
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
-app.delete('/api/bookmarklets/:id', (req, res) => {
+app.delete('/api/bookmarklets/:id', async (req, res) => {
   const { id } = req.params;
-  db.run(`DELETE FROM bookmarklets WHERE id = ?`, id, function(err) {
-    if (err) {
-      res.status(500).json({ error: err.message });
-      return;
-    }
-    if (this.changes === 0) {
+  try {
+    const result = await db.collection('bookmarklets').deleteOne({ _id: new ObjectId(id) });
+    if (result.deletedCount === 0) {
       res.status(404).json({ error: 'Bookmarklet not found' });
     } else {
       res.status(204).send();
     }
-  });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 app.get('/', (req, res) => {
@@ -93,13 +88,8 @@ app.listen(port, () => {
   console.log(`Server đang chạy tại http://localhost:${port}`);
 });
 
-// Đóng kết nối database khi tắt server
-process.on('SIGINT', () => {
-  db.close((err) => {
-    if (err) {
-      console.error(err.message);
-    }
-    console.log('Closed the database connection.');
-    process.exit(0);
-  });
+process.on('SIGINT', async () => {
+  await client.close();
+  console.log('MongoDB connection closed');
+  process.exit(0);
 });
