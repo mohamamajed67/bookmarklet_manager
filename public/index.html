@@ -388,14 +388,14 @@
                 const bookmarkletCard = document.createElement('div');
                 bookmarkletCard.className = 'bookmarklet-card';
                 bookmarkletCard.innerHTML = `
-            <div class="bookmarklet-name">${bookmarklet.name}</div>
-            <div class="bookmarklet-description">${bookmarklet.description}</div>
-            <div class="bookmarklet-actions">
-                <a href="${bookmarklet.code}" class="bookmarklet-link">${bookmarklet.name}</a>
-                <button class="bookmarklet-edit" data-id="${bookmarklet.id}"><i class="fas fa-edit"></i></button>
-                <button class="bookmarklet-delete" data-id="${bookmarklet.id}"><i class="fas fa-trash"></i></button>
-            </div>
-        `;
+                    <div class="bookmarklet-name">${bookmarklet.name}</div>
+                    <div class="bookmarklet-description">${bookmarklet.description}</div>
+                    <div class="bookmarklet-actions">
+                        <a href="${bookmarklet.code}" class="bookmarklet-link">${bookmarklet.name}</a>
+                        <button class="bookmarklet-edit" data-id="${bookmarklet._id}"><i class="fas fa-edit"></i></button>
+                        <button class="bookmarklet-delete" data-id="${bookmarklet._id}"><i class="fas fa-trash"></i></button>
+                    </div>
+                `;
                 bookmarkletGrid.appendChild(bookmarkletCard);
             });
 
@@ -418,83 +418,23 @@
             displayBookmarklets(filteredBookmarklets);
         }
 
-        // Hàm để thêm bookmarklet mới
-        function addBookmarklet(e) {
-            e.preventDefault();
-            const newBookmarklet = {
-                name: document.getElementById('bookmarklet-name').value,
-                description: document.getElementById('bookmarklet-description').value,
-                code: document.getElementById('bookmarklet-code').value
-            };
-            bookmarklets.push(newBookmarklet);
-            displayBookmarklets();
-            closeModal();
-        }
-
-        // Hàm để sửa bookmarklet
-        function editBookmarklet(e) {
-            const index = e.currentTarget.dataset.index;
-            const bookmarklet = bookmarklets[index];
-            document.getElementById('bookmarklet-name').value = bookmarklet.name;
-            document.getElementById('bookmarklet-description').value = bookmarklet.description;
-            document.getElementById('bookmarklet-code').value = bookmarklet.code;
-            modalTitle.textContent = 'Sửa Bookmarklet';
-            bookmarkletForm.onsubmit = (e) => {
-                e.preventDefault();
-                bookmarklets[index] = {
-                    name: document.getElementById('bookmarklet-name').value,
-                    description: document.getElementById('bookmarklet-description').value,
-                    code: document.getElementById('bookmarklet-code').value
-                };
-                displayBookmarklets();
-                closeModal();
-            };
-            openModal();
-        }
-
-        // Hàm để xóa bookmarklet
-        function deleteBookmarklet(e) {
-            if (confirm('Bạn có chắc chắn muốn xóa bookmarklet này?')) {
-                const index = e.currentTarget.dataset.index;
-                bookmarklets.splice(index, 1);
-                displayBookmarklets();
-            }
-        }
-
-        // Hàm để mở modal
-        function openModal() {
-            modal.style.display = 'block';
-        }
-
-        // Hàm để đóng modal
-        function closeModal() {
-            modal.style.display = 'none';
-            bookmarkletForm.reset();
-            modalTitle.textContent = 'Thêm Bookmarklet mới';
-            bookmarkletForm.onsubmit = addBookmarklet;
-        }
-
-        // Event listeners
-        searchInput.addEventListener('input', searchBookmarklets);
-        addBookmarkletBtn.addEventListener('click', openModal);
-        modalClose.addEventListener('click', closeModal);
-        bookmarkletForm.addEventListener('submit', addBookmarklet);
-
-        // Giả lập tải dữ liệu
-        document.addEventListener('DOMContentLoaded', loadBookmarklets);
         // Hàm để tải bookmarklets từ backend
         async function loadBookmarklets() {
             try {
                 loadingElement.style.display = 'block';
                 const response = await fetch('/api/bookmarklets');
                 if (!response.ok) {
-                    throw new Error('Không thể tải bookmarklets');
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
-                bookmarklets = await response.json();
+                const data = await response.json();
+                if (!Array.isArray(data)) {
+                    throw new Error('Invalid data format');
+                }
+                bookmarklets = data;
                 displayBookmarklets();
             } catch (error) {
                 console.error('Lỗi:', error);
-                alert('Có lỗi xảy ra khi tải bookmarklets');
+                alert(`Có lỗi xảy ra khi tải bookmarklets: ${error.message}`);
             } finally {
                 loadingElement.style.display = 'none';
             }
@@ -530,7 +470,7 @@
         // Hàm để sửa bookmarklet
         async function editBookmarklet(e) {
             const id = e.currentTarget.dataset.id;
-            const bookmarklet = bookmarklets.find(b => b.id === id);
+            const bookmarklet = bookmarklets.find(b => b._id === id);
             document.getElementById('bookmarklet-name').value = bookmarklet.name;
             document.getElementById('bookmarklet-description').value = bookmarklet.description;
             document.getElementById('bookmarklet-code').value = bookmarklet.code;
@@ -562,6 +502,7 @@
             };
             openModal();
         }
+
         // Hàm để xóa bookmarklet
         async function deleteBookmarklet(e) {
             if (confirm('Bạn có chắc chắn muốn xóa bookmarklet này?')) {
@@ -580,6 +521,25 @@
                 }
             }
         }
+
+        // Hàm để mở modal
+        function openModal() {
+            modal.style.display = 'block';
+        }
+
+        // Hàm để đóng modal
+        function closeModal() {
+            modal.style.display = 'none';
+            bookmarkletForm.reset();
+            modalTitle.textContent = 'Thêm Bookmarklet mới';
+            bookmarkletForm.onsubmit = addBookmarklet;
+        }
+
+        // Event listeners
+        searchInput.addEventListener('input', searchBookmarklets);
+        addBookmarkletBtn.addEventListener('click', openModal);
+        modalClose.addEventListener('click', closeModal);
+        bookmarkletForm.addEventListener('submit', addBookmarklet);
 
         // Gọi hàm loadBookmarklets khi trang web được tải
         document.addEventListener('DOMContentLoaded', loadBookmarklets);
