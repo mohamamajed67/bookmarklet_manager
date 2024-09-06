@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ thống Quản lý Bookmarklet Nâng cao</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --background-color: #ecf0f1;
+            --card-color: #ffffff;
+            --text-color: #34495e;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --hover-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+
+        .container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: 250px;
+            background-color: var(--primary-color);
+            color: white;
+            padding: 2rem 1rem;
+            box-shadow: var(--shadow);
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .nav-item {
+            padding: 0.5rem 1rem;
+            margin-bottom: 0.5rem;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .nav-item:hover,
+        .nav-item.active {
+            background-color: var(--secondary-color);
+        }
+
+        .nav-item i {
+            margin-right: 0.5rem;
+        }
+
+        .main-content {
+            flex-grow: 1;
+            padding: 2rem;
+            overflow-y: auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 2rem;
+            font-weight: 500;
+        }
+
+        .search-bar {
+            display: flex;
+            align-items: center;
+            background-color: white;
+            border-radius: 25px;
+            padding: 0.5rem 1rem;
+            box-shadow: var(--shadow);
+        }
+
+        .search-bar input {
+            border: none;
+            outline: none;
+            font-size: 1rem;
+            margin-left: 0.5rem;
+            width: 200px;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background-color 0.3s ease;
+        }
+
+        .btn-primary {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #2980b9;
+        }
+
+        .btn-danger {
+            background-color: var(--accent-color);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #c0392b;
+        }
+
+        .bookmarklet-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .bookmarklet-card {
+            background-color: var(--card-color);
+            border-radius: 10px;
+            box-shadow: var(--shadow);
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .bookmarklet-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--hover-shadow);
+        }
+
+        .bookmarklet-name {
+            font-size: 1.2rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            color: var(--secondary-color);
+        }
+
+        .bookmarklet-description {
+            font-size: 0.9rem;
+            color: #666;
+            flex-grow: 1;
+            margin-bottom: 1rem;
+        }
+
+        .bookmarklet-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .bookmarklet-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--secondary-color);
+            color: white;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            font-weight: 500;
+            transition: background-color 0.3s ease;
+        }
+
+        .bookmarklet-link:hover {
+            background-color: #2980b9;
+        }
+
+        .bookmarklet-edit,
+        .bookmarklet-delete {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.2rem;
+            color: var(--text-color);
+            transition: color 0.3s ease;
+        }
+
+        .bookmarklet-edit:hover {
+            color: var(--secondary-color);
+        }
+
+        .bookmarklet-delete:hover {
+            color: var(--accent-color);
+        }
+
+        #loading {
+            text-align: center;
+            font-size: 1.2rem;
+            color: var(--secondary-color);
+            margin-top: 2rem;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.4);
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
+            border-radius: 10px;
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                padding: 1rem;
+            }
+
+            .nav-items {
+                display: flex;
+                justify-content: space-around;
+            }
+
+            .nav-item {
+                text-align: center;
+            }
+
+            .nav-item i {
+                margin-right: 0;
+            }
+
+            .header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .search-bar {
+                margin-top: 1rem;
+            }
+
+            .action-buttons {
+                flex-wrap: wrap;
+            }
+
+            .bookmarklet-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <aside class="sidebar">
+            <div class="logo">Bookmarklet Pro</div>
+            <nav class="nav-items">
+                <div class="nav-item active"><i class="fas fa-bookmark"></i> Tất cả Bookmarklet</div>
+                <div class="nav-item"><i class="fas fa-folder"></i> Danh mục</div>
+                <div class="nav-item"><i class="fas fa-chart-bar"></i> Thống kê</div>
+                <div class="nav-item"><i class="fas fa-cog"></i> Cài đặt</div>
+            </nav>
+        </aside>
+        <main class="main-content">
+            <div class="header">
+                <h1>Quản lý Bookmarklet</h1>
+                <div class="search-bar">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="search-input" placeholder="Tìm kiếm bookmarklet...">
+                </div>
+            </div>
+            <div class="action-buttons">
+                <button class="btn btn-primary" id="add-bookmarklet"><i class="fas fa-plus"></i> Thêm
+                    Bookmarklet</button>
+                <button class="btn btn-primary"><i class="fas fa-file-export"></i> Xuất dữ liệu</button>
+                <button class="btn btn-primary"><i class="fas fa-file-import"></i> Nhập dữ liệu</button>
+                <button class="btn btn-danger"><i class="fas fa-trash"></i> Xóa tất cả</button>
+            </div>
+            <div id="loading">Đang tải dữ liệu...</div>
+            <div class="bookmarklet-grid" id="bookmarklet-grid"></div>
+        </main>
+    </div>
+
+    <div id="bookmarklet-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2 id="modal-title">Thêm Bookmarklet mới</h2>
+            <form id="bookmarklet-form">
+                <div class="form-group">
+                    <label for="bookmarklet-name">Tên:</label>
+                    <input type="text" id="bookmarklet-name" required>
+                </div>
+                <div class="form-group">
+                    <label for="bookmarklet-description">Mô tả:</label>
+                    <textarea id="bookmarklet-description" rows="3" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="bookmarklet-code">Mã:</label>
+                    <textarea id="bookmarklet-code" rows="5" required></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">Lưu</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Khởi tạo mảng bookmarklets
+        let bookmarklets = [];
+
+        // Các element DOM
+        const bookmarkletGrid = document.getElementById('bookmarklet-grid');
+        const loadingElement = document.getElementById('loading');
+        const searchInput = document.getElementById('search-input');
+        const addBookmarkletBtn = document.getElementById('add-bookmarklet');
+        const modal = document.getElementById('bookmarklet-modal');
+        const modalClose = modal.querySelector('.close');
+        const bookmarkletForm = document.getElementById('bookmarklet-form');
+        const modalTitle = document.getElementById('modal-title');
+
+        // Hàm để hiển thị bookmarklets
+        function displayBookmarklets(bookmarkletsToShow = bookmarklets) {
+            bookmarkletGrid.innerHTML = '';
+            bookmarkletsToShow.forEach((bookmarklet) => {
+                const bookmarkletCard = document.createElement('div');
+                bookmarkletCard.className = 'bookmarklet-card';
+                bookmarkletCard.innerHTML = `
+            <div class="bookmarklet-name">${bookmarklet.name}</div>
+            <div class="bookmarklet-description">${bookmarklet.description}</div>
+            <div class="bookmarklet-actions">
+                <a href="${bookmarklet.code}" class="bookmarklet-link">${bookmarklet.name}</a>
+                <button class="bookmarklet-edit" data-id="${bookmarklet.id}"><i class="fas fa-edit"></i></button>
+                <button class="bookmarklet-delete" data-id="${bookmarklet.id}"><i class="fas fa-trash"></i></button>
+            </div>
+        `;
+                bookmarkletGrid.appendChild(bookmarkletCard);
+            });
+
+            // Thêm event listeners cho các nút sửa và xóa
+            document.querySelectorAll('.bookmarklet-edit').forEach(btn => {
+                btn.addEventListener('click', editBookmarklet);
+            });
+            document.querySelectorAll('.bookmarklet-delete').forEach(btn => {
+                btn.addEventListener('click', deleteBookmarklet);
+            });
+        }
+
+        // Hàm để tìm kiếm bookmarklets
+        function searchBookmarklets() {
+            const searchTerm = searchInput.value.toLowerCase();
+            const filteredBookmarklets = bookmarklets.filter(bookmarklet =>
+                bookmarklet.name.toLowerCase().includes(searchTerm) ||
+                bookmarklet.description.toLowerCase().includes(searchTerm)
+            );
+            displayBookmarklets(filteredBookmarklets);
+        }
+
+        // Hàm để thêm bookmarklet mới
+        function addBookmarklet(e) {
+            e.preventDefault();
+            const newBookmarklet = {
+                name: document.getElementById('bookmarklet-name').value,
+                description: document.getElementById('bookmarklet-description').value,
+                code: document.getElementById('bookmarklet-code').value
+            };
+            bookmarklets.push(newBookmarklet);
+            displayBookmarklets();
+            closeModal();
+        }
+
+        // Hàm để sửa bookmarklet
+        function editBookmarklet(e) {
+            const index = e.currentTarget.dataset.index;
+            const bookmarklet = bookmarklets[index];
+            document.getElementById('bookmarklet-name').value = bookmarklet.name;
+            document.getElementById('bookmarklet-description').value = bookmarklet.description;
+            document.getElementById('bookmarklet-code').value = bookmarklet.code;
+            modalTitle.textContent = 'Sửa Bookmarklet';
+            bookmarkletForm.onsubmit = (e) => {
+                e.preventDefault();
+                bookmarklets[index] = {
+                    name: document.getElementById('bookmarklet-name').value,
+                    description: document.getElementById('bookmarklet-description').value,
+                    code: document.getElementById('bookmarklet-code').value
+                };
+                displayBookmarklets();
+                closeModal();
+            };
+            openModal();
+        }
+
+        // Hàm để xóa bookmarklet
+        function deleteBookmarklet(e) {
+            if (confirm('Bạn có chắc chắn muốn xóa bookmarklet này?')) {
+                const index = e.currentTarget.dataset.index;
+                bookmarklets.splice(index, 1);
+                displayBookmarklets();
+            }
+        }
+
+        // Hàm để mở modal
+        function openModal() {
+            modal.style.display = 'block';
+        }
+
+        // Hàm để đóng modal
+        function closeModal() {
+            modal.style.display = 'none';
+            bookmarkletForm.reset();
+            modalTitle.textContent = 'Thêm Bookmarklet mới';
+            bookmarkletForm.onsubmit = addBookmarklet;
+        }
+
+        // Event listeners
+        searchInput.addEventListener('input', searchBookmarklets);
+        addBookmarkletBtn.addEventListener('click', openModal);
+        modalClose.addEventListener('click', closeModal);
+        bookmarkletForm.addEventListener('submit', addBookmarklet);
+
+        // Giả lập tải dữ liệu
+        document.addEventListener('DOMContentLoaded', loadBookmarklets);
+        // Hàm để tải bookmarklets từ backend
+        async function loadBookmarklets() {
+            try {
+                loadingElement.style.display = 'block';
+                const response = await fetch('/api/bookmarklets');
+                if (!response.ok) {
+                    throw new Error('Không thể tải bookmarklets');
+                }
+                bookmarklets = await response.json();
+                displayBookmarklets();
+            } catch (error) {
+                console.error('Lỗi:', error);
+                alert('Có lỗi xảy ra khi tải bookmarklets');
+            } finally {
+                loadingElement.style.display = 'none';
+            }
+        }
+
+        // Hàm để thêm bookmarklet mới
+        async function addBookmarklet(e) {
+            e.preventDefault();
+            const newBookmarklet = {
+                name: document.getElementById('bookmarklet-name').value,
+                description: document.getElementById('bookmarklet-description').value,
+                code: document.getElementById('bookmarklet-code').value
+            };
+            try {
+                const response = await fetch('/api/bookmarklets', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(newBookmarklet),
+                });
+                if (!response.ok) {
+                    throw new Error('Không thể thêm bookmarklet');
+                }
+                await loadBookmarklets();
+                closeModal();
+            } catch (error) {
+                console.error('Lỗi:', error);
+                alert('Có lỗi xảy ra khi thêm bookmarklet');
+            }
+        }
+
+        // Hàm để sửa bookmarklet
+        async function editBookmarklet(e) {
+            const id = e.currentTarget.dataset.id;
+            const bookmarklet = bookmarklets.find(b => b.id === id);
+            document.getElementById('bookmarklet-name').value = bookmarklet.name;
+            document.getElementById('bookmarklet-description').value = bookmarklet.description;
+            document.getElementById('bookmarklet-code').value = bookmarklet.code;
+            modalTitle.textContent = 'Sửa Bookmarklet';
+            bookmarkletForm.onsubmit = async (e) => {
+                e.preventDefault();
+                const updatedBookmarklet = {
+                    name: document.getElementById('bookmarklet-name').value,
+                    description: document.getElementById('bookmarklet-description').value,
+                    code: document.getElementById('bookmarklet-code').value
+                };
+                try {
+                    const response = await fetch(`/api/bookmarklets/${id}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(updatedBookmarklet),
+                    });
+                    if (!response.ok) {
+                        throw new Error('Không thể cập nhật bookmarklet');
+                    }
+                    await loadBookmarklets();
+                    closeModal();
+                } catch (error) {
+                    console.error('Lỗi:', error);
+                    alert('Có lỗi xảy ra khi cập nhật bookmarklet');
+                }
+            };
+            openModal();
+        }
+        // Hàm để xóa bookmarklet
+        async function deleteBookmarklet(e) {
+            if (confirm('Bạn có chắc chắn muốn xóa bookmarklet này?')) {
+                const id = e.currentTarget.dataset.id;
+                try {
+                    const response = await fetch(`/api/bookmarklets/${id}`, {
+                        method: 'DELETE',
+                    });
+                    if (!response.ok) {
+                        throw new Error('Không thể xóa bookmarklet');
+                    }
+                    await loadBookmarklets();
+                } catch (error) {
+                    console.error('Lỗi:', error);
+                    alert('Có lỗi xảy ra khi xóa bookmarklet');
+                }
+            }
+        }
+
+        // Gọi hàm loadBookmarklets khi trang web được tải
+        document.addEventListener('DOMContentLoaded', loadBookmarklets);
+    </script>
+</body>
+
+</html>
